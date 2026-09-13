@@ -6,17 +6,14 @@ from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 
-# ตั้งค่า Supabase (ดึงจาก Environment Variable หรือใส่ค่าตรงๆ สำหรับเทส)
-SUPABASE_URL = os.environ.get("SUPABASE_URL", "ใส่_Project_URL_ของคุณที่นี่")
-SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "ใส่_Service_Role_Key_ของคุณที่นี่")
+SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
+SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "")
 SUPABASE_BUCKET = "uploads"
 
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-# ฟังก์ชันเชื่อมต่อ PostgreSQL ภายใน Supabase
 def get_db_connection():
-    # ดึง Connection string จาก Supabase Settings -> Database -> Connection string (URI)
-    db_url = os.environ.get("DATABASE_URL", "ใส่_PostgreSQL_Connection_String_ของคุณที่นี่")
+    db_url = os.environ.get("DATABASE_URL", "")
     return psycopg2.connect(db_url)
 
 HTML_TEMPLATE = '''
@@ -289,7 +286,6 @@ def index():
     for r in db_items:
         file_url = None
         if r[3]:
-            # ดึง Public URL ของไฟล์จาก Supabase Storage โดยตรง
             file_url = f"{SUPABASE_URL}/storage/v1/object/public/{SUPABASE_BUCKET}/{r[3]}"
         items.append({'id': r[0], 'name': r[1], 'category': r[2], 'file_url': file_url, 'filename': r[3]})
         
@@ -305,7 +301,6 @@ def add_item():
     if file and file.filename != '':
         filename = secure_filename(file.filename)
         file_bytes = file.read()
-        # อัปโหลดไฟล์ขึ้น Supabase Storage แทนการเก็บไว้ในเครื่อง
         try:
             supabase.storage.from_(SUPABASE_BUCKET).upload(
                 path=filename,
@@ -333,7 +328,6 @@ def delete_item(item_id):
     
     if row and row[0]:
         try:
-            # ลบไฟล์ออกจาก Supabase Storage
             supabase.storage.from_(SUPABASE_BUCKET).remove([row[0]])
         except Exception as e:
             print("Delete Storage Error:", e)
